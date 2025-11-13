@@ -1,9 +1,21 @@
-using GadgetsOnline.Models;
+﻿using GadgetsOnline.Models;
+using System;
 using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration.Conventions;
+using Npgsql;
 
 namespace GadgetsOnline.Models
 {
+    public class GadgetsOnlinePostgreSqlConfiguration : DbConfiguration
+    {
+        public GadgetsOnlinePostgreSqlConfiguration()
+        {
+            SetProviderServices("Npgsql", Npgsql.NpgsqlServices.Instance);
+            SetDefaultConnectionFactory(new Npgsql.NpgsqlConnectionFactory());
+        }
+    }
+
+    [DbConfigurationType(typeof(GadgetsOnlinePostgreSqlConfiguration))]
     public class GadgetsOnlineEntities : DbContext
     {
         // Default constructor using connection string name from config
@@ -29,6 +41,62 @@ namespace GadgetsOnline.Models
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
+            // PostgreSQL uses lowercase table and column names by default
+            // Configure table name mappings based on schema mappings
+            modelBuilder.Entity<Product>().ToTable("products", "atx-database-rds_dbo");
+            modelBuilder.Entity<Category>().ToTable("categories", "atx-database-rds_dbo");
+            modelBuilder.Entity<Cart>().ToTable("carts", "atx-database-rds_dbo");
+            modelBuilder.Entity<Order>().ToTable("orders", "atx-database-rds_dbo");
+            modelBuilder.Entity<OrderDetail>().ToTable("orderdetails", "atx-database-rds_dbo");
+
+            // Configure column mappings for each entity
+            // Product columns
+            modelBuilder.Entity<Product>().Property(p => p.ProductId).HasColumnName("productid");
+            modelBuilder.Entity<Product>().Property(p => p.CategoryId).HasColumnName("categoryid");
+            modelBuilder.Entity<Product>().Property(p => p.Name).HasColumnName("name");
+            modelBuilder.Entity<Product>().Property(p => p.Price).HasColumnName("price");
+            modelBuilder.Entity<Product>().Property(p => p.ProductArtUrl).HasColumnName("productarturl");
+            
+            // Category columns
+            modelBuilder.Entity<Category>().Property(c => c.CategoryId).HasColumnName("categoryid");
+            modelBuilder.Entity<Category>().Property(c => c.Name).HasColumnName("name");
+            modelBuilder.Entity<Category>().Property(c => c.Description).HasColumnName("description");
+            
+            // Cart columns
+            modelBuilder.Entity<Cart>().Property(c => c.RecordId).HasColumnName("recordid");
+            modelBuilder.Entity<Cart>().Property(c => c.CartId).HasColumnName("cartid");
+            modelBuilder.Entity<Cart>().Property(c => c.ProductId).HasColumnName("productid");
+            modelBuilder.Entity<Cart>().Property(c => c.Count).HasColumnName("count");
+            modelBuilder.Entity<Cart>().Property(c => c.DateCreated).HasColumnName("datecreated");
+            
+            // Order columns
+            modelBuilder.Entity<Order>().Property(o => o.OrderId).HasColumnName("orderid");
+            modelBuilder.Entity<Order>().Property(o => o.OrderDate).HasColumnName("orderdate");
+            modelBuilder.Entity<Order>().Property(o => o.Username).HasColumnName("username");
+            modelBuilder.Entity<Order>().Property(o => o.FirstName).HasColumnName("firstname");
+            modelBuilder.Entity<Order>().Property(o => o.LastName).HasColumnName("lastname");
+            modelBuilder.Entity<Order>().Property(o => o.Address).HasColumnName("address");
+            modelBuilder.Entity<Order>().Property(o => o.City).HasColumnName("city");
+            modelBuilder.Entity<Order>().Property(o => o.State).HasColumnName("state");
+            modelBuilder.Entity<Order>().Property(o => o.PostalCode).HasColumnName("postalcode");
+            modelBuilder.Entity<Order>().Property(o => o.Country).HasColumnName("country");
+            modelBuilder.Entity<Order>().Property(o => o.Phone).HasColumnName("phone");
+            modelBuilder.Entity<Order>().Property(o => o.Email).HasColumnName("email");
+            modelBuilder.Entity<Order>().Property(o => o.Total).HasColumnName("total");
+            
+            // OrderDetail columns
+            modelBuilder.Entity<OrderDetail>().Property(od => od.OrderDetailId).HasColumnName("orderdetailid");
+            modelBuilder.Entity<OrderDetail>().Property(od => od.OrderId).HasColumnName("orderid");
+            modelBuilder.Entity<OrderDetail>().Property(od => od.ProductId).HasColumnName("productid");
+            modelBuilder.Entity<OrderDetail>().Property(od => od.Quantity).HasColumnName("quantity");
+            modelBuilder.Entity<OrderDetail>().Property(od => od.UnitPrice).HasColumnName("unitprice");
+
+            // PostgreSQL-specific configuration for DateTime properties
+            // PostgreSQL stores dates in UTC format
+            // Configure any DateTime properties to use UTC
+            modelBuilder.Entity<Cart>().Property(c => c.DateCreated).HasColumnType("timestamp with time zone");
+            modelBuilder.Entity<Order>().Property(o => o.OrderDate).HasColumnType("timestamp with time zone");
+
             // Configure relationships
             modelBuilder.Entity<Category>()
                 .HasMany(c => c.Products)
@@ -50,9 +118,6 @@ namespace GadgetsOnline.Models
                 .WithMany()
                 .HasForeignKey(od => od.ProductId);
         }
-
     }
-
-
 }
 
