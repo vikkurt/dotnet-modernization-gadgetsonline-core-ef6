@@ -1,9 +1,21 @@
-using GadgetsOnline.Models;
+﻿using GadgetsOnline.Models;
 using System.Data.Entity;
 using System.Data.Entity.ModelConfiguration.Conventions;
+using Npgsql;
 
 namespace GadgetsOnline.Models
 {
+    // PostgreSQL Configuration for Entity Framework 6
+    public class GadgetsOnlineEntitiesPostgreSqlConfiguration : DbConfiguration
+    {
+        public GadgetsOnlineEntitiesPostgreSqlConfiguration()
+        {
+            SetProviderServices("Npgsql", Npgsql.NpgsqlServices.Instance);
+            SetDefaultConnectionFactory(new Npgsql.NpgsqlConnectionFactory());
+        }
+    }
+
+    [DbConfigurationType(typeof(GadgetsOnlineEntitiesPostgreSqlConfiguration))]
     public class GadgetsOnlineEntities : DbContext
     {
         // Default constructor using connection string name from config
@@ -29,6 +41,16 @@ namespace GadgetsOnline.Models
 
         protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
+            // Apply schema qualification for PostgreSQL target schema
+            modelBuilder.HasDefaultSchema("atx-database-rds_dbo");
+
+            // Configure table mappings with schema
+            modelBuilder.Entity<Product>().ToTable("products", "atx-database-rds_dbo");
+            modelBuilder.Entity<Category>().ToTable("categories", "atx-database-rds_dbo");
+            modelBuilder.Entity<Cart>().ToTable("carts", "atx-database-rds_dbo");
+            modelBuilder.Entity<Order>().ToTable("orders", "atx-database-rds_dbo");
+            modelBuilder.Entity<OrderDetail>().ToTable("orderdetails", "atx-database-rds_dbo");
+
             // Configure relationships
             modelBuilder.Entity<Category>()
                 .HasMany(c => c.Products)
